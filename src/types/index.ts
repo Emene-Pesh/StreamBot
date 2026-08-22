@@ -322,4 +322,5 @@ export interface VideoQueue {
   items: QueueItem[];
   currentIndex: number;
   isPlaying: boolean;
+	isLooping: boolean;
 }

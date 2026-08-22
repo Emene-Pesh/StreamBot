@@ -26,6 +26,11 @@ export default class PlayCommand extends BaseCommand {
 			return;
 		}
 
+		if (input.toLowerCase() === '24/7 tv') {
+			await this.handleLocalVideoLoop(context);
+			return;
+		}
+
 		// Check if input is a URL (YouTube, Twitch, or direct link)
 		if (GeneralUtils.isValidUrl(input)) {
 			await this.handleUrl(context, input);
@@ -48,6 +53,33 @@ export default class PlayCommand extends BaseCommand {
 				// Treat as search query
 				await this.handleSearchQuery(context, input);
 			}
+		}
+	}
+
+	private async handleLocalVideoLoop(context: CommandContext): Promise<void> {
+		const videoFiles = fs.readdirSync(config.videosDir, { withFileTypes: true })
+			.filter(entry => entry.isFile())
+			.map(entry => ({
+				name: path.parse(entry.name).name,
+				path: path.join(config.videosDir, entry.name)
+			}));
+
+		context.videos.length = 0;
+		context.videos.push(...videoFiles);
+
+		if (videoFiles.length === 0) {
+			await this.sendError(context.message, 'No local videos found.');
+			return;
+		}
+
+		const queueService = context.streamingService.getQueueService();
+		queueService.setLooping(true);
+		for (const video of videoFiles) {
+			await context.streamingService.addToQueue(context.message, video.path, video.name);
+		}
+
+		if (!context.streamStatus.playing) {
+			await context.streamingService.playFromQueue(context.message);
 		}
 	}
 

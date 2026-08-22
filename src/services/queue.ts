@@ -11,7 +11,8 @@ export class QueueService {
 		this.queue = {
 			items: [],
 			currentIndex: -1,
-			isPlaying: false
+			isPlaying: false,
+			isLooping: false
 		};
 	}
 
@@ -166,7 +167,24 @@ export class QueueService {
 		this.queue.items = [];
 		this.queue.currentIndex = -1;
 		this.queue.isPlaying = false;
+		this.queue.isLooping = false;
 		logger.info('Queue cleared');
+	}
+
+	rotateCurrentToEnd(): QueueItem | null {
+		const currentItem = this.getCurrent();
+		if (!currentItem) {
+			return null;
+		}
+
+		this.queue.items.splice(this.queue.currentIndex, 1);
+		this.queue.items.push(currentItem);
+		this.queue.currentIndex = -1;
+		return currentItem;
+	}
+
+	setLooping(isLooping: boolean): void {
+		this.queue.isLooping = isLooping;
 	}
 
 	/**

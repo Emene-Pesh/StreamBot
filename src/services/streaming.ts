@@ -278,9 +278,11 @@ export class StreamingService {
 	private async handleQueueAdvancement(message: Message): Promise<void> {
 		await DiscordUtils.sendFinishMessage(message);
 
-		// The video finished playing, so remove it from the queue
 		const finishedItem = this.queueService.getCurrent();
-		if (finishedItem) {
+		if (finishedItem && this.queueService.getQueueStatus().isLooping) {
+			this.queueService.rotateCurrentToEnd();
+		} else if (finishedItem) {
+			// Ordinary queue playback removes a video after it finishes.
 			this.queueService.removeFromQueue(finishedItem.id);
 		}
 
