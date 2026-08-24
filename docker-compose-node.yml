@@ -1,6 +1,9 @@
 services:
   streambot:
     image: quay.io/ydrag0n/streambot:node
+    build:
+      context: .
+      dockerfile: Dockerfile.node
     container_name: streambot
     restart: always
     environment:
