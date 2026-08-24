@@ -16,9 +16,9 @@ export abstract class BaseCommand implements Command {
 		await DiscordUtils.sendError(message, error);
 	}
 
-	protected async sendSuccess(message: any, description: string): Promise<void> {
-		await DiscordUtils.sendSuccess(message, description);
-	}
+	// protected async sendSuccess(message: any, description: string): Promise<void> {
+	// 	await DiscordUtils.sendSuccess(message, description);
+	// }
 
 	protected async sendInfo(message: any, title: string, description: string): Promise<void> {
 		await DiscordUtils.sendInfo(message, title, description);
@@ -28,11 +28,11 @@ export abstract class BaseCommand implements Command {
 		await DiscordUtils.sendList(message, items, type);
 	}
 
-	protected async sendPlaying(message: any, title: string): Promise<void> {
-		await DiscordUtils.sendPlaying(message, title);
-	}
+	// protected async sendPlaying(message: any, title: string): Promise<void> {
+	// 	await DiscordUtils.sendPlaying(message, title);
+	// }
 
-	protected async sendFinishMessage(message: any): Promise<void> {
-		await DiscordUtils.sendFinishMessage(message);
-	}
+	// protected async sendFinishMessage(message: any): Promise<void> {
+	// 	await DiscordUtils.sendFinishMessage(message);
+	// }
 }

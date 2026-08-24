@@ -49,7 +49,7 @@ export class StreamingService {
 
 			if (mediaSource) {
 				const queueItem = await this.queueService.addToQueue(mediaSource, username);
-				await DiscordUtils.sendSuccess(message, `Added to queue: \`${queueItem.title}\``);
+				// await DiscordUtils.sendSuccess(message, `Added to queue: \`${queueItem.title}\``);
 				return true;
 			} else {
 				// Fallback for unresolved sources
@@ -61,7 +61,7 @@ export class StreamingService {
 					false,
 					videoSource
 				);
-				await DiscordUtils.sendSuccess(message, `Added to queue: \`${queueItem.title}\``);
+				// await DiscordUtils.sendSuccess(message, `Added to queue: \`${queueItem.title}\``);
 				return true;
 			}
 		} catch (error) {
@@ -276,7 +276,7 @@ export class StreamingService {
 	}
 
 	private async handleQueueAdvancement(message: Message): Promise<void> {
-		await DiscordUtils.sendFinishMessage(message);
+		// await DiscordUtils.sendFinishMessage(message);
 
 		const finishedItem = this.queueService.getCurrent();
 		if (finishedItem && this.queueService.getQueueStatus().isLooping) {
@@ -355,7 +355,8 @@ export class StreamingService {
 	}
 
 	private async finalizeStream(message: Message, tempFile: string | null): Promise<void> {
-		if (!this.streamStatus.manualStop && this.controller && !this.controller.signal.aborted) {
+		// A failed stream aborts the controller too, but should not strand the queue.
+		if (!this.streamStatus.manualStop) {
 			await this.handleQueueAdvancement(message);
 		} else {
 			this.queueService.setPlaying(false);
@@ -389,7 +390,7 @@ export class StreamingService {
 			tempFile = tempFilePath;
 
 			await this.ensureVoiceConnection(guildId, channelId, title);
-			await DiscordUtils.sendPlaying(message, title || videoSource);
+			// await DiscordUtils.sendPlaying(message, title || videoSource);
 
 			const streamOpts = this.setupStreamConfiguration(videoParams);
 			await this.executeStreamWorkflow(inputForFfmpeg, streamOpts, message, title || videoSource, videoSource);

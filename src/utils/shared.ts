@@ -40,7 +40,7 @@ export const DiscordUtils = {
 	 */
 	async sendSuccess(message: Message, description: string): Promise<void> {
 		await message.react('✅');
-		await message.channel.send(`✅ **Success**: ${description}`);
+		// await message.channel.send(`✅ **Success**: ${description}`);
 	},
 
 	/**
@@ -54,21 +54,21 @@ export const DiscordUtils = {
 	/**
 	 * Send playing message with reaction
 	 */
-	async sendPlaying(message: Message, title: string): Promise<void> {
-		const content = `📽 **Now Playing**: \`${title}\``;
-		await Promise.all([
-			message.react('▶️'),
-			message.reply(content)
-		]);
-	},
+	// async sendPlaying(message: Message, title: string): Promise<void> {
+	// 	const content = `📽 **Now Playing**: \`${title}\``;
+	// 	await Promise.all([
+	// 		message.react('▶️'),
+	// 		message.channel.send(content)
+	// 	]);
+	// },
 
 	/**
 	 * Send finish message
 	 */
-	async sendFinishMessage(message: Message): Promise<void> {
-		const content = '⏹️ **Finished**: Finished playing video.';
-		await message.channel.send(content);
-	},
+	// async sendFinishMessage(message: Message): Promise<void> {
+	// 	const content = '⏹️ **Finished**: Finished playing video.';
+	// 	await message.channel.send(content);
+	// },
 
 	/**
 	 * Send list message with reaction
