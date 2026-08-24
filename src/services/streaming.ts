@@ -17,6 +17,7 @@ export class StreamingService {
  	private streamStatus: StreamStatus;
  	private failedVideos: Set<string> = new Set();
  	private isSkipping: boolean = false;
+	private restartRequest: { message: Message, item: QueueItem } | null = null;
 
  	constructor(client: Client, streamStatus: StreamStatus) {
  		this.streamer = new Streamer(client);
@@ -85,6 +86,23 @@ export class StreamingService {
 
 		this.queueService.setPlaying(true);
 		await this.playVideoFromQueueItem(message, nextItem);
+	}
+
+	public async restartCurrent(message: Message): Promise<void> {
+		const currentItem = this.queueService.getCurrent();
+		if (!currentItem || !this.streamStatus.playing) {
+			await DiscordUtils.sendError(message, 'No video is currently playing.');
+			return;
+		}
+
+		this.restartRequest = { message, item: currentItem };
+		this.streamStatus.manualStop = true;
+		this.controller?.abort();
+		this.streamer.stopStream();
+		this.streamer.leaveVoice();
+		this.streamStatus.joined = false;
+		this.streamStatus.joinsucc = false;
+		this.streamStatus.playing = false;
 	}
 
 	public async skipCurrent(message: Message): Promise<void> {
@@ -305,31 +323,18 @@ export class StreamingService {
 	}
 
 	private async handleDownload(message: Message, videoSource: string, title?: string): Promise<string | null> {
-		const downloadMessage = await message.reply(`📥 Downloading \`${title || 'YouTube video'}\`...`).catch(e => {
-			logger.warn("Failed to send 'Downloading...' message:", e);
-			return null;
-		});
-
 		try {
 			logger.info(`Downloading ${title || videoSource}...`);
 			const tempFilePath = await this.mediaService.downloadYouTubeVideo(videoSource);
 
 			if (tempFilePath) {
 				logger.info(`Finished downloading ${title || videoSource}`);
-				if (downloadMessage) {
-					await downloadMessage.delete().catch(e => logger.warn("Failed to delete 'Downloading...' message:", e));
-				}
 				return tempFilePath;
 			}
 			throw new Error('Download failed, no temp file path returned.');
 		} catch (error) {
 			logger.error(`Failed to download YouTube video: ${videoSource}`, error);
-			const errorMessage = `❌ Failed to download \`${title || 'YouTube video'}\`.`;
-			if (downloadMessage) {
-				await downloadMessage.edit(errorMessage).catch(e => logger.warn("Failed to edit 'Downloading...' message:", e));
-			} else {
-				await DiscordUtils.sendError(message, `Failed to download video: ${error instanceof Error ? error.message : String(error)}`);
-			}
+			await DiscordUtils.sendError(message, `Failed to download video: ${error instanceof Error ? error.message : String(error)}`);
 			return null;
 		}
 	}
@@ -355,8 +360,13 @@ export class StreamingService {
 	}
 
 	private async finalizeStream(message: Message, tempFile: string | null): Promise<void> {
-		// A failed stream aborts the controller too, but should not strand the queue.
-		if (!this.streamStatus.manualStop) {
+		const restartRequest = this.restartRequest;
+		this.restartRequest = null;
+
+		if (restartRequest) {
+			this.streamStatus.manualStop = false;
+			await this.playVideoFromQueueItem(restartRequest.message, restartRequest.item);
+		} else if (!this.streamStatus.manualStop) {
 			await this.handleQueueAdvancement(message);
 		} else {
 			this.queueService.setPlaying(false);
