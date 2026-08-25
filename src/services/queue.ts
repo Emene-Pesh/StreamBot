@@ -171,6 +171,24 @@ export class QueueService {
 		logger.info('Queue cleared');
 	}
 
+	/**
+	 * Clear upcoming items while keeping the currently playing item.
+	 */
+	clearUpcoming(): number {
+		const currentItem = this.getCurrent();
+		if (!currentItem || !this.queue.isPlaying) {
+			const removedCount = this.queue.items.length;
+			this.clearQueue();
+			return removedCount;
+		}
+
+		const removedCount = this.queue.items.length - 1;
+		this.queue.items = [currentItem];
+		this.queue.currentIndex = 0;
+		logger.info(`Cleared ${removedCount} upcoming queue item(s)`);
+		return removedCount;
+	}
+
 	rotateCurrentToEnd(): QueueItem | null {
 		const currentItem = this.getCurrent();
 		if (!currentItem) {

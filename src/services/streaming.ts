@@ -18,6 +18,7 @@ export class StreamingService {
  	private failedVideos: Set<string> = new Set();
  	private isSkipping: boolean = false;
 	private restartRequest: { message: Message, item: QueueItem } | null = null;
+	private readonly reconnectDelayMs = 3000;
 
  	constructor(client: Client, streamStatus: StreamStatus) {
  		this.streamer = new Streamer(client);
@@ -99,7 +100,7 @@ export class StreamingService {
 		this.streamStatus.manualStop = true;
 		this.controller?.abort();
 		this.streamer.stopStream();
-		this.streamer.leaveVoice();
+		await Promise.resolve(this.streamer.leaveVoice());
 		this.streamStatus.joined = false;
 		this.streamStatus.joinsucc = false;
 		this.streamStatus.playing = false;
@@ -365,6 +366,7 @@ export class StreamingService {
 
 		if (restartRequest) {
 			this.streamStatus.manualStop = false;
+			await new Promise(resolve => setTimeout(resolve, this.reconnectDelayMs));
 			await this.playVideoFromQueueItem(restartRequest.message, restartRequest.item);
 		} else if (!this.streamStatus.manualStop) {
 			await this.handleQueueAdvancement(message);
