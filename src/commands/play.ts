@@ -74,13 +74,71 @@ export default class PlayCommand extends BaseCommand {
 
 		const queueService = context.streamingService.getQueueService();
 		queueService.setLooping(true);
-		for (const video of videoFiles) {
+		for (const video of this.createTvSchedule(videoFiles)) {
 			await context.streamingService.addToQueue(context.message, video.path, video.name);
 		}
 
 		if (!context.streamStatus.playing) {
 			await context.streamingService.playFromQueue(context.message);
 		}
+	}
+
+	private createTvSchedule(videoFiles: Array<{ name: string; path: string }>): Array<{ name: string; path: string }> {
+		const shows = new Map<string, Array<{ name: string; path: string; season: number; episode: number }>>();
+
+		for (const video of videoFiles) {
+			const episodeMatch = video.name.match(/\bS(\d{1,2})E(\d{1,3})/i);
+			const showName = episodeMatch
+				? video.name.slice(0, episodeMatch.index).replace(/[\s|:-]+$/, '').trim()
+				: video.name;
+			const key = showName.toLowerCase();
+			const showEpisodes = shows.get(key) || [];
+			showEpisodes.push({
+				...video,
+				season: episodeMatch ? Number(episodeMatch[1]) : Number.MAX_SAFE_INTEGER,
+				episode: episodeMatch ? Number(episodeMatch[2]) : Number.MAX_SAFE_INTEGER
+			});
+			shows.set(key, showEpisodes);
+		}
+
+		const remainingShows = Array.from(shows.values());
+		for (const episodes of remainingShows) {
+			episodes.sort((first, second) =>
+				first.season - second.season ||
+				first.episode - second.episode ||
+				first.name.localeCompare(second.name)
+			);
+		}
+
+		const schedule: Array<{ name: string; path: string }> = [];
+		let previousShow: Array<{ name: string; path: string; season: number; episode: number }> | null = null;
+		let consecutiveCount = 0;
+
+		while (remainingShows.length > 0) {
+			const eligibleShows = remainingShows.filter(show => show !== previousShow || consecutiveCount < 2);
+			const candidates = eligibleShows.length > 0 ? eligibleShows : remainingShows;
+			const selectedIndex = Math.floor(Math.random() * candidates.length);
+			const selectedShow = candidates[selectedIndex];
+			const nextEpisode = selectedShow.shift();
+			if (!nextEpisode) {
+				remainingShows.splice(remainingShows.indexOf(selectedShow), 1);
+				continue;
+			}
+
+			schedule.push({ name: nextEpisode.name, path: nextEpisode.path });
+			if (selectedShow === previousShow) {
+				consecutiveCount++;
+			} else {
+				previousShow = selectedShow;
+				consecutiveCount = 1;
+			}
+
+			if (selectedShow.length === 0) {
+				remainingShows.splice(remainingShows.indexOf(selectedShow), 1);
+			}
+		}
+
+		return schedule;
 	}
 
 
