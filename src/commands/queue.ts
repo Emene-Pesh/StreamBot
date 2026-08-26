@@ -1,5 +1,5 @@
 import { BaseCommand } from "./base.js";
-import { CommandContext } from "../types/index.js";
+import { CommandContext, QueueItem } from "../types/index.js";
 
 export default class QueueCommand extends BaseCommand {
 	name = "queue";
@@ -36,8 +36,15 @@ export default class QueueCommand extends BaseCommand {
 				queueText += '*Queue is empty*\n';
 			}
 		} else {
-			upcomingItems.forEach((item, index) => {
+			const groupedItems = this.groupByShow(upcomingItems);
+			groupedItems.forEach((group, index) => {
 				const position = queueStatus.isPlaying ? index + 1 : index;
+				if (group.items.length > 1) {
+					queueText += `${position + 1}. \`${group.title}\` (${group.items.length} episodes)\n`;
+					return;
+				}
+
+				const item = group.items[0];
 				const addedTime = item.addedAt.toLocaleTimeString();
 				const status = item.resolved ? '' : '⏳';
 				const title = item.resolved ? item.title : `${item.title} (pending)`;
@@ -45,15 +52,42 @@ export default class QueueCommand extends BaseCommand {
 			});
 		}
 
-		// Split message if it's too long (Discord has a 2000 character limit)
-		if (queueText.length > 1900) {
-			const firstPart = queueText.substring(0, 1900) + '...';
-			const secondPart = '...(continued)\n' + queueText.substring(1900);
-
-			await context.message.channel.send(firstPart);
-			await context.message.channel.send(secondPart);
-		} else {
-			await context.message.channel.send(queueText);
+		// Discord limits individual messages, so split only at complete lines.
+		let messagePart = '';
+		for (const line of queueText.split('\n')) {
+			const nextPart = messagePart ? `${messagePart}\n${line}` : line;
+			if (nextPart.length > 1900 && messagePart) {
+				await context.message.channel.send(messagePart);
+				messagePart = line;
+			} else {
+				messagePart = nextPart;
+			}
 		}
+		if (messagePart) {
+			await context.message.channel.send(messagePart);
+		}
+	}
+
+	private groupByShow(items: QueueItem[]): Array<{ title: string; items: QueueItem[] }> {
+		const groups = new Map<string, { title: string; items: QueueItem[] }>();
+
+		for (const item of items) {
+			const showTitle = this.getShowTitle(item.title);
+			const key = showTitle.toLowerCase();
+			const group = groups.get(key);
+			if (group) {
+				group.items.push(item);
+			} else {
+				groups.set(key, { title: showTitle, items: [item] });
+			}
+		}
+
+		return Array.from(groups.values());
+	}
+
+	private getShowTitle(title: string): string {
+		const episodeMarker = /\s*(?:[-|:]\s*)?(?:s\d{1,2}\s*e\d{1,2}(?:\s*[-&,/]\s*e?\d{1,2})?|\d{1,2}x\d{1,2}|season\s+\d+(?:\s*episode\s*\d+)?|episode\s*\d+|ep\.?\s*\d+)\b.*$/i;
+		const showTitle = title.replace(episodeMarker, '').trim().replace(/[\s|:-]+$/, '').trim();
+		return showTitle || title;
 	}
 }
