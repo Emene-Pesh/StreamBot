@@ -16,9 +16,9 @@ export abstract class BaseCommand implements Command {
 		await DiscordUtils.sendError(message, error);
 	}
 
-	// protected async sendSuccess(message: any, description: string): Promise<void> {
-	// 	await DiscordUtils.sendSuccess(message, description);
-	// }
+	protected async sendSuccess(message: any, description: string): Promise<void> {
+		await DiscordUtils.sendSuccess(message, description);
+	}
 
 	protected async sendInfo(message: any, title: string, description: string): Promise<void> {
 		await DiscordUtils.sendInfo(message, title, description);

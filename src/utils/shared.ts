@@ -38,10 +38,9 @@ export const DiscordUtils = {
 	/**
 	 * Send success message with reaction
 	 */
-	// async sendSuccess(message: Message, description: string): Promise<void> {
-	// 	await message.react('✅');
-	// 	// await message.channel.send(`✅ **Success**: ${description}`);
-	// },
+	async sendSuccess(message: Message, description: string): Promise<void> {
+		await message.react('✅');
+	},
 
 	/**
 	 * Send info message with reaction
