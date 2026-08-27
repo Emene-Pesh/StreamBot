@@ -36,6 +36,7 @@ const streamStatus = {
 	joinsucc: false,
 	playing: false,
 	manualStop: false,
+	verbose: false,
 	channelInfo: {
 		guildId: config.guildId,
 		channelId: config.videoChannelId,

@@ -402,7 +402,9 @@ export class StreamingService {
 			tempFile = tempFilePath;
 
 			await this.ensureVoiceConnection(guildId, channelId, title);
-			// await DiscordUtils.sendPlaying(message, title || videoSource);
+			if (this.streamStatus.verbose) {
+				await DiscordUtils.sendPlaying(message, title || videoSource);
+			}
 
 			const streamOpts = this.setupStreamConfiguration(videoParams);
 			await this.executeStreamWorkflow(inputForFfmpeg, streamOpts, message, title || videoSource, videoSource);

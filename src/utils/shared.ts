@@ -54,13 +54,13 @@ export const DiscordUtils = {
 	/**
 	 * Send playing message with reaction
 	 */
-	// async sendPlaying(message: Message, title: string): Promise<void> {
-	// 	const content = `📽 **Now Playing**: \`${title}\``;
-	// 	await Promise.all([
-	// 		message.react('▶️'),
-	// 		message.channel.send(content)
-	// 	]);
-	// },
+	async sendPlaying(message: Message, title: string): Promise<void> {
+		const content = `📽 **Now Playing**: \`${title}\``;
+		await Promise.all([
+			message.react('▶️'),
+			message.channel.send(content)
+		]);
+	},
 
 	/**
 	 * Send finish message

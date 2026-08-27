@@ -278,6 +278,7 @@ export interface StreamStatus {
  	joinsucc: boolean;
  	playing: boolean;
  	manualStop: boolean;
+	verbose: boolean;
  	channelInfo: {
  		guildId: string;
  		channelId: string;
