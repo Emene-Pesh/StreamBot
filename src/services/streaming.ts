@@ -16,7 +16,6 @@ export class StreamingService {
  	private controller: AbortController | null = null;
  	private streamStatus: StreamStatus;
  	private failedVideos: Set<string> = new Set();
- 	private isSkipping: boolean = false;
 	private restartRequest: { message: Message, item: QueueItem } | null = null;
 	private readonly reconnectDelayMs = 3000;
 
@@ -112,46 +111,30 @@ export class StreamingService {
 			return;
 		}
 
-		// Check if this is the last item in the queue
-		const queueLength = this.queueService.getLength();
-		const isLastItem = queueLength <= 1;
+		// Stop the current stream immediately
+		this.streamStatus.manualStop = true;
+		this.controller?.abort();
+		this.streamer.stopStream();
 
-		// Prevent concurrent skip operations only if there are more items in queue
-		if (this.isSkipping && !isLastItem) {
-			await DiscordUtils.sendError(message, 'Skip already in progress.');
+		const currentItem = this.queueService.getCurrent(); // Get item being skipped
+		const nextItem = this.queueService.skip(); // Advance the queue
+
+		if (!nextItem) {
+			// No more items in queue - stop playback and leave voice channel
+			await DiscordUtils.sendInfo(message, 'Queue', 'No more videos in queue.');
+			this.queueService.setPlaying(false);
+			await this.cleanupStreamStatus();
 			return;
 		}
 
-		this.isSkipping = true;
+		const currentTitle = currentItem ? currentItem.title : 'current video';
+		await DiscordUtils.sendInfo(message, 'Skipping', `Skipping \`${currentTitle}\`. Playing next: \`${nextItem.title}\``);
 
-		try {
-			// Stop the current stream immediately
-			this.streamStatus.manualStop = true;
-			this.controller?.abort();
-			this.streamer.stopStream();
+		// Reset manual stop flag since we're starting a new video
+		this.streamStatus.manualStop = false;
 
-			const currentItem = this.queueService.getCurrent(); // Get item being skipped
-			const nextItem = this.queueService.skip(); // Advance the queue
-
-			if (!nextItem) {
-				// No more items in queue - stop playback and leave voice channel
-				await DiscordUtils.sendInfo(message, 'Queue', 'No more videos in queue.');
-				this.queueService.setPlaying(false);
-				await this.cleanupStreamStatus();
-				return;
-			}
-
-			const currentTitle = currentItem ? currentItem.title : 'current video';
-			await DiscordUtils.sendInfo(message, 'Skipping', `Skipping \`${currentTitle}\`. Playing next: \`${nextItem.title}\``);
-
-			// Reset manual stop flag since we're starting a new video
-			this.streamStatus.manualStop = false;
-
-			// Skip cleanup since we're playing the next item immediately
-			await this.playVideoFromQueueItem(message, nextItem);
-		} finally {
-			this.isSkipping = false;
-		}
+		// Skip cleanup since we're playing the next item immediately
+		await this.playVideoFromQueueItem(message, nextItem);
 	}
 
 	private async playVideoFromQueueItem(message: Message, queueItem: QueueItem): Promise<void> {
